@@ -6,28 +6,29 @@ using UnityEngine;
 
 public class AStarGrid : MonoBehaviour
 {
+    // Parameters
     public int width;
     public int height;
     public int depth;
     public float gridSize;
     public GameObject boxPrefab;
+
+    // Internals
     private float nodeRadius;
-
-
     private Node[,,] nodes;
     private Node startNode;
     private Node goalNode;
     private HashSet<Node> vistedNodes = new HashSet<Node>();
+    private LinkedList<Node> path = new LinkedList<Node>();
 
-    float timer;
+    private float timer;
 
+    // Components
     private GridController gridController;
     private PathPool pathPool;
 
 
-    private LinkedList<Node> path = new LinkedList<Node>();
-
-
+    #region Unity lifecycle
     void Awake()
     {
         gridController = GetComponent<GridController>();
@@ -117,6 +118,7 @@ public class AStarGrid : MonoBehaviour
             }
         }
     }
+    #endregion
 
     #region A* Helpers
     private LinkedList<Node> MakePath(Node endNode)
