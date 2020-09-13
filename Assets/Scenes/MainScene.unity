@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 3
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 18b6bf7c06173654ead94eda5ab1abee, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -222,6 +222,7 @@ GameObject:
   - component: {fileID: 460051640}
   - component: {fileID: 460051639}
   - component: {fileID: 460051641}
+  - component: {fileID: 460051642}
   m_Layer: 0
   m_Name: Grid
   m_TagString: Untagged
@@ -275,6 +276,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   showGrid: 0
   showCollisonBox: 1
+--- !u!114 &460051642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 460051638}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89fdc5af3d88f2344af9ace7794d6d18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  prefab: {fileID: 1057812138313162570, guid: dd556fe231f777344b706ec47570d96f, type: 3}
 --- !u!1 &480199303
 GameObject:
   m_ObjectHideFlags: 0
@@ -309,9 +323,9 @@ MonoBehaviour:
   - {fileID: 5250828189259371949, guid: 0fa5668e96d63984d9c8d1da3e11a58c, type: 3}
   - {fileID: 5344500257452961845, guid: 45a35b32364344948a44d3c7a4446333, type: 3}
   radius: 20
-  asteroids: 150
+  asteroids: 200
   minScale: 0.1
-  maxScale: 1.5
+  maxScale: 1.4
   drawGizmos: 0
 --- !u!4 &480199305
 Transform:

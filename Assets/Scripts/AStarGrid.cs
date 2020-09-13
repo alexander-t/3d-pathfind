@@ -22,6 +22,8 @@ public class AStarGrid : MonoBehaviour
     float timer;
 
     private GridController gridController;
+    private PathPool pathPool;
+
 
     private LinkedList<Node> path = new LinkedList<Node>();
 
@@ -29,6 +31,7 @@ public class AStarGrid : MonoBehaviour
     void Awake()
     {
         gridController = GetComponent<GridController>();
+        pathPool = GetComponent<PathPool>();
 
         nodes = new Node[depth, height, width];
         nodeRadius = gridSize / 2.0f;
@@ -50,61 +53,33 @@ public class AStarGrid : MonoBehaviour
         }
     }
 
-    private LinkedList<Node> MakePath(Node endNode)
-    {
-        LinkedList<Node> path = new LinkedList<Node>();
-        if (endNode != null)
-        {
-            Node n = endNode;
-            while (n != startNode && n != null)
-            {
-                path.AddFirst(n);
-                n = n.parentNode;
-            }
-            path.AddFirst(n);
-        }
-        return path;
-    }
-
-    Node Vector2Node(Vector3Int v)
-    {
-        return nodes[v.z, v.y, v.x];
-    }
-
     void Start()
     {
         startNode = Vector2Node(new Vector3Int(width / 2, height / 2, 0));
         goalNode = Vector2Node(new Vector3Int(width / 2, height / 2, depth - 1));
         StartCoroutine("ComputePath");
-
-        /*  Node n = goalNode;
-          if (n != null)
-          {
-              while (n != startNode && n != null)
-              {
-                  Instantiate(boxPrefab, new Vector3(n.WorldPoint.x, n.WorldPoint.y, n.WorldPoint.z - nodeRadius - 0.05f), Quaternion.identity, this.transform);
-                  n = n.parentNode;
-              }
-              Instantiate(boxPrefab, new Vector3(n.WorldPoint.x, n.WorldPoint.y, n.WorldPoint.z - nodeRadius - 0.05f), Quaternion.identity, this.transform);
-          }*/
     }
 
-
-    void ResetNodes()
+    void Update()
     {
-        if (nodes != null)
+        if (timer < 0.25)
         {
-            vistedNodes.Clear();
-            foreach (Node node in nodes)
+            timer += Time.deltaTime;
+        }
+        else
+        {
+            timer = 0;
+            if (path.Any())
             {
-                node.traversable = !Physics.CheckBox(node.WorldPoint, Vector3.one / 2);
-                node.gCost = 0;
-                node.hCost = 0;
-                node.parentNode = null;
+                pathPool.ReclaimAll();
+                foreach (Node n in path)
+                {
+                    GameObject step = pathPool.GiveObject();
+                    step.transform.position = n.WorldPoint;
+                }
             }
         }
     }
-
 
     void OnDrawGizmos()
     {
@@ -143,9 +118,47 @@ public class AStarGrid : MonoBehaviour
         }
     }
 
+    #region A* Helpers
+    private LinkedList<Node> MakePath(Node endNode)
+    {
+        LinkedList<Node> path = new LinkedList<Node>();
+        if (endNode != null)
+        {
+            Node n = endNode;
+            while (n != startNode && n != null)
+            {
+                path.AddFirst(new Node(n));
+                n = n.parentNode;
+            }
+            path.AddFirst(new Node(n));
+        }
+        return path;
+    }
+
+    private Node Vector2Node(Vector3Int v)
+    {
+        return nodes[v.z, v.y, v.x];
+    }
+
+    private void ResetNodes()
+    {
+        if (nodes != null)
+        {
+            vistedNodes.Clear();
+            foreach (Node node in nodes)
+            {
+                node.traversable = !Physics.CheckBox(node.WorldPoint, Vector3.one / 2);
+                node.gCost = 0;
+                node.hCost = 0;
+                node.parentNode = null;
+            }
+        }
+    }
+    #endregion
+
+    #region A* 
     public IEnumerator ComputePath()
     {
-        //float startTime = Time.realtimeSinceStartup;
         if (startNode == null || goalNode == null || nodes == null)
         {
             throw new InvalidOperationException("Not properly initialized!");
@@ -189,7 +202,6 @@ public class AStarGrid : MonoBehaviour
                 yield return null;
             }
         }
-        //Debug.Log("ComputePath time:" + (Time.realtimeSinceStartup - startTime));
     }
 
     public static int CalculateDistance(int startX, int startY, int startZ, int endX, int endY, int endZ)
@@ -241,5 +253,5 @@ public class AStarGrid : MonoBehaviour
         }
         return adjacentNodes;
     }
-
+    #endregion
 }

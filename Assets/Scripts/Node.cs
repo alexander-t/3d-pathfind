@@ -27,4 +27,7 @@ public class Node
         this.worldPoint = worldPoint;
         this.traversable = traversable;
     }
+
+    public Node(Node src) : this(src.x, src.y, src.x, src.WorldPoint, src.traversable) {
+    }
 }
