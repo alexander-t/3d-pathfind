@@ -31,7 +31,6 @@ public class TransformTranslationControler : MonoBehaviour
         {
             if (direction)
             {
-                Debug.Log(start);
                 start = transform.position;
                 end = startPosition;
             }

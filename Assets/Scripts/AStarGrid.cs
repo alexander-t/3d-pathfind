@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -9,7 +10,9 @@ public class AStarGrid : MonoBehaviour
     public int height;
     public int depth;
     public float gridSize;
+    public GameObject boxPrefab;
     private float nodeRadius;
+
 
     private Node[,,] nodes;
     private Node startNode;
@@ -19,6 +22,8 @@ public class AStarGrid : MonoBehaviour
     float timer;
 
     private GridController gridController;
+
+    private LinkedList<Node> path = new LinkedList<Node>();
 
 
     void Awake()
@@ -34,20 +39,56 @@ public class AStarGrid : MonoBehaviour
             {
                 for (int x = 0; x < width; x++)
                 {
-                    Vector3 worldPoint = new Vector3(transform.position.x + x * gridSize + nodeRadius, transform.position.y + y * gridSize + nodeRadius, transform.position.z + z * gridSize + nodeRadius);
-                    nodes[z, y, x] = new Node(x, y, z, worldPoint, !Physics.CheckSphere(worldPoint, nodeRadius));
+                    Vector3 worldPoint = new Vector3(
+                        transform.position.x - (width * gridSize / 2) + x * gridSize + nodeRadius,
+                        transform.position.y - (height * gridSize / 2) + y * gridSize + nodeRadius,
+                        transform.position.z - (depth * gridSize / 2) + z * gridSize + nodeRadius
+                    );
+                    nodes[z, y, x] = new Node(x, y, z, worldPoint, !Physics.CheckBox(worldPoint, Vector3.one / 2));
                 }
             }
         }
     }
 
+    private LinkedList<Node> MakePath(Node endNode)
+    {
+        LinkedList<Node> path = new LinkedList<Node>();
+        if (endNode != null)
+        {
+            Node n = endNode;
+            while (n != startNode && n != null)
+            {
+                path.AddFirst(n);
+                n = n.parentNode;
+            }
+            path.AddFirst(n);
+        }
+        return path;
+    }
+
+    Node Vector2Node(Vector3Int v)
+    {
+        return nodes[v.z, v.y, v.x];
+    }
+
     void Start()
     {
-        startNode = nodes[0, 0, 0];
-        goalNode = nodes[9, 9, 9];
-        ResetNodes();
-        ComputePath();
+        startNode = Vector2Node(new Vector3Int(width / 2, height / 2, 0));
+        goalNode = Vector2Node(new Vector3Int(width / 2, height / 2, depth - 1));
+        StartCoroutine("ComputePath");
+
+        /*  Node n = goalNode;
+          if (n != null)
+          {
+              while (n != startNode && n != null)
+              {
+                  Instantiate(boxPrefab, new Vector3(n.WorldPoint.x, n.WorldPoint.y, n.WorldPoint.z - nodeRadius - 0.05f), Quaternion.identity, this.transform);
+                  n = n.parentNode;
+              }
+              Instantiate(boxPrefab, new Vector3(n.WorldPoint.x, n.WorldPoint.y, n.WorldPoint.z - nodeRadius - 0.05f), Quaternion.identity, this.transform);
+          }*/
     }
+
 
     void ResetNodes()
     {
@@ -56,7 +97,7 @@ public class AStarGrid : MonoBehaviour
             vistedNodes.Clear();
             foreach (Node node in nodes)
             {
-                node.traversable = !Physics.CheckSphere(node.WorldPoint, nodeRadius);
+                node.traversable = !Physics.CheckBox(node.WorldPoint, Vector3.one / 2);
                 node.gCost = 0;
                 node.hCost = 0;
                 node.parentNode = null;
@@ -64,16 +105,6 @@ public class AStarGrid : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        timer += Time.deltaTime;
-        if (timer > 0.5)
-        {
-            ResetNodes();
-            ComputePath();
-            timer = 0;
-        }
-    }
 
     void OnDrawGizmos()
     {
@@ -101,38 +132,64 @@ public class AStarGrid : MonoBehaviour
                 }
             }
 
-            Node n = goalNode;
-            if (n != null)
+            if (path.Any())
             {
                 Gizmos.color = Color.blue;
-                while (n != startNode && n != null)
+                foreach (Node n in path)
                 {
                     Gizmos.DrawCube(n.WorldPoint, nodeSize);
-                    n = n.parentNode;
                 }
-                Gizmos.DrawCube(n.WorldPoint, nodeSize);
             }
         }
     }
 
-    public Node ComputePath()
+    public IEnumerator ComputePath()
     {
+        //float startTime = Time.realtimeSinceStartup;
         if (startNode == null || goalNode == null || nodes == null)
         {
-            return null;
+            throw new InvalidOperationException("Not properly initialized!");
         }
-
-        HashSet<Node> nodesToVisit = new HashSet<Node>();
-        Node currentNode = startNode;
-        while (currentNode != goalNode)
+        else
         {
-            vistedNodes.Add(currentNode);
-            ISet<Node> adjacentNodes = CalculateNeighborhood(currentNode);
-            nodesToVisit.UnionWith(adjacentNodes);
-            currentNode = nodesToVisit.Aggregate((n1, n2) => n2.FCost > n1.FCost ? n1 : n2);
-            nodesToVisit.Remove(currentNode);
+            for (; ; )
+            {
+                ResetNodes();
+                int nodesProcessed = 0;
+                HashSet<Node> nodesToVisit = new HashSet<Node>();
+                Node currentNode = startNode;
+                while (currentNode != goalNode)
+                {
+                    vistedNodes.Add(currentNode);
+                    ISet<Node> adjacentNodes = CalculateNeighborhood(currentNode);
+                    nodesToVisit.UnionWith(adjacentNodes);
+                    currentNode = nodesToVisit.Aggregate((n1, n2) =>
+                    {
+                        if (n2.FCost > n1.FCost)
+                        {
+                            return n1;
+                        }
+                        else if (n2.FCost == n1.FCost)
+                        {
+                            return n2.hCost > n1.hCost ? n1 : n2;
+                        }
+                        else
+                        {
+                            return n2;
+                        }
+                    });
+                    nodesToVisit.Remove(currentNode);
+                    if (++nodesProcessed == 128)
+                    {
+                        nodesProcessed = 0;
+                        yield return null;
+                    }
+                }
+                path = MakePath(goalNode);
+                yield return null;
+            }
         }
-        return goalNode;
+        //Debug.Log("ComputePath time:" + (Time.realtimeSinceStartup - startTime));
     }
 
     public static int CalculateDistance(int startX, int startY, int startZ, int endX, int endY, int endZ)
